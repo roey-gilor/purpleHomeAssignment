@@ -33,7 +33,7 @@ const MainComp = () => {
     return (<div>
         <Switch>
             <Route path="/Login" component={LoginComp} />
-            <Route path="/Site/site" component={SiteComp} />
+            <Route path="/Site" component={SiteComp} />
         </Switch>
     </div>)
 }
