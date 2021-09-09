@@ -1,35 +1,90 @@
-import react, { useState, useEffect, useCallback } from 'react'
-import { useHistory } from 'react-router-dom';
-import { useDropzone } from 'react-dropzone'
-import "bootstrap/dist/css/bootstrap.min.css"
-import Dropzone from 'react-dropzone-uploader'
-import 'react-dropzone-uploader/dist/styles.css'
-import { Link } from 'react-router-dom';
+import react, { useState, useEffect } from 'react'
+import { useDropzone } from 'react-dropzone';
+import "bootstrap/dist/css/bootstrap.min.css";
+import UploadService from "./FileUploadService";
 
-const FilesComp = () => {
+const FilesComp = (props) => {
+    useEffect(() => {
+        UploadService.isExist();
+        let arr = UploadService.getFiles()
+        setFileInfos(arr)
+    }, []);
 
-    // Payload data and url to upload files
-    const getUploadParams = ({ meta }) => { return { url: 'http://localhost:3000/Site/Files' } }
+    const [selectedFiles, setSelectedFiles] = useState(undefined);
+    const [currentFile, setCurrentFile] = useState(undefined);
+    const [progress, setProgress] = useState(0);
+    const [message, setMessage] = useState("");
+    const [fileInfos, setFileInfos] = useState([]);
 
-    // Return the current status of files being uploaded
-    const handleChangeStatus = ({ meta, file }, status) => { console.log(status, meta, file, file.lastModifiedDate) }
+    const selectFile = (event) => {
+        setSelectedFiles(event.target.files);
+    };
 
-    // Return array of uploaded files after submit button is clicked
-    const handleSubmit = (files, allFiles) => {
-        console.log(files.map(f => f.meta))
-        allFiles.forEach(f => f.remove())
-    }
+    const upload = () => {
+        let currentFile = selectedFiles[0];
+
+        setProgress(0);
+        setCurrentFile(currentFile);
+
+        try {
+            UploadService.upload(currentFile, (event) => {
+                setProgress(Math.round((100 * event.loaded) / event.total));
+            })
+            let arr = UploadService.getFiles()
+            setFileInfos(arr)
+        }
+        catch {
+            setProgress(0);
+            setMessage("Could not upload the file!");
+            setCurrentFile(undefined);
+        }
+        setSelectedFiles(undefined);
+    };
 
     return (<div> <br />
-        <h1>Upload Files</h1>
-        <Link to='https://purplehomeassignment.firebaseapp.com/'> Link</Link>
-        <Dropzone
-            getUploadParams={getUploadParams}
-            onChangeStatus={handleChangeStatus}
-            // onSubmit={handleSubmit}
-            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.tsv,.ppt,.pptx,.pages,.odt,.rtf"
-        />
+        <h1>Upload Files</h1> <br />
+        {currentFile && (
+            <div className="progress">
+                <div
+                    className="progress-bar progress-bar-info progress-bar-striped"
+                    role="progressbar"
+                    aria-valuenow={progress}
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    style={{ width: progress + "%" }}
+                >
+                    {progress}%
+                </div>
+            </div>
+        )}
 
+        <label className="btn btn-default">
+            <input type="file" onChange={selectFile} />
+        </label>
+
+        <button
+            className="btn btn-success"
+            disabled={!selectedFiles}
+            onClick={upload}
+        >
+            Upload
+        </button>
+
+        <div className="alert alert-light" role="alert">
+            {message}
+        </div>
+
+        <div className="card">
+            <div className="card-header">List of Files</div>
+            <ul className="list-group list-group-flush">
+                {fileInfos &&
+                    fileInfos.map((file, index) => (
+                        <li className="list-group-item" key={index}>
+                            <a href={file.url}>{file.name}</a>
+                        </li>
+                    ))}
+            </ul>
+        </div>
     </div>)
 }
 
